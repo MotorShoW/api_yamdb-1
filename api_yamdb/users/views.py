@@ -9,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from api_yamdb.settings import DEFAULT_FROM_EMAIL
 from .models import User
 from .permissions import IsAdmin
 from .serializers import SignUpSerializer, TokenSerializer, UserSerializer
@@ -19,13 +20,14 @@ class UserViewSet(viewsets.ModelViewSet):
     permission_classes = (IsAuthenticated, IsAdmin)
     serializer_class = UserSerializer
     lookup_field = 'username'
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('username',)
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', ]
 
     @action(
         detail=False,
-        methods=('get', 'patch'),
+        methods=('get', 'patch', 'post'),
         permission_classes=(IsAuthenticated,),
+        url_path='me', url_name='me'
     )
     def me(self, request, *args, **kwargs):
         instance = self.request.user
@@ -69,6 +71,8 @@ class SignUpVeiwSet(APIView):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data.get('email')
+            if email is None:
+                return Response(request.data, status.HTTP_400_BAD_REQUEST)
             confirmation_code = uuid.uuid4()
             User.objects.create(
                 email=email, username=str(email),
@@ -77,10 +81,11 @@ class SignUpVeiwSet(APIView):
             send_mail(
                 'Account verification',
                 'Your activation key {}'.format(confirmation_code),
+                DEFAULT_FROM_EMAIL,
                 [email],
                 fail_silently=True,
             )
             return Response(
                 {'result': 'A confirmation code has been sent to your email'},
-                status=200)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
