@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
-from models.models import Category, Genre, Titles
+from .models import Category, Genre, Titles, User
 from django.utils import timezone
 
 
@@ -51,3 +51,27 @@ class TitleCreateSerializer(serializers.ModelSerializer):
                 'Ошибка валидации года'
             )
         return obj
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        fields = (
+            'username',
+            'email',
+            'role',
+            'first_name',
+            'last_name',
+            'bio',
+        )
+        model = User
+
+
+class TokenSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    confirmation_code = serializers.CharField(required=True)
+
+
+class SignUpSerializer(serializers.Serializer):
+    class Meta:
+        model = User
+        fields = ('email',)
