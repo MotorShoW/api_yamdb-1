@@ -98,6 +98,9 @@ class Titles(models.Model):
     year = models.IntegerField(
         validators=[MaxValueValidator(timezone.now().year)]
     )
+    description = models.CharField(
+        max_length=100, blank=True, null=True
+    )
 
     class Meta:
         verbose_name = 'Произведение'
