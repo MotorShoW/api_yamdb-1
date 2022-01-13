@@ -17,6 +17,9 @@ from .serializers import (TitleCreateSerializer, TitlesSerializer,
 from .permissions import IsAdmin, ReadOnly
 
 
+SIGNUP_ERROR = 'Error in field {email}'
+
+
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
@@ -125,7 +128,8 @@ class SignUpVeiwSet(APIView):
         if serializer.is_valid():
             email = serializer.validated_data.get('email')
             if email is None:
-                return Response(request.data, status.HTTP_400_BAD_REQUEST)
+                return Response(request.data,
+                                status.HTTP_400_BAD_REQUEST)
             confirmation_code = uuid.uuid4()
             User.objects.create(
                 email=email, username=str(email),
