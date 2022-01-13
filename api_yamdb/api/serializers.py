@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
+from django.db.models import Avg
 from .models.models import Category, Genre, Titles, User
 from django.utils import timezone
 
@@ -8,14 +9,14 @@ class CategorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Category
-        fields = '__all__'
+        fields = ('slug', 'name')
 
 
 class GenreSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Genre
-        fields = '__all__'
+        fields = ('name', 'slug')
 
 
 class TitlesSerializer(serializers.ModelSerializer):
@@ -25,10 +26,9 @@ class TitlesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Titles
-        fields = '__all__'
+        fields = '_all__'
 
     def get_score(self, obj):
-        """Тут надо переход на рейтинг оформить, но часть B у нас пока в тумане где-то, думаю, лучше оставить на потом"""
         pass
 
 

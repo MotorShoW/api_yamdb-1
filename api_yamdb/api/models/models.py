@@ -90,9 +90,11 @@ class GenreTitle(models.Model):
 
 class Titles(models.Model):
     name = models.CharField(max_length=50)
-    genre = models.ManyToManyField('Genre', through='GenreTitle')
+    genre = models.ManyToManyField('Genre', through='GenreTitle',
+                                   related_name='category')
     category = models.ForeignKey('Category', on_delete=models.SET_NULL,
-                                 null=True, blank=True)
+                                 null=True, blank=True,
+                                 related_name='category')
     year = models.IntegerField(
         validators=[MaxValueValidator(timezone.now().year)]
     )
@@ -100,3 +102,6 @@ class Titles(models.Model):
     class Meta:
         verbose_name = 'Произведение'
         verbose_name_plural = 'Произведения'
+
+    def __str__(self):
+        return self.name
