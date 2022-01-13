@@ -10,7 +10,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import DEFAULT_FROM_EMAIL
-from .models import Titles, Genre, Category, User
+from .models.models import Titles, Genre, Category, User
 from .serializers import (TitleCreateSerializer, TitlesSerializer,
                           GenreSerializer, CategorySerializer,
                           SignUpSerializer, TokenSerializer, UserSerializer)

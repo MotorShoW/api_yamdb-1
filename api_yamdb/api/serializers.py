@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from rest_framework.fields import SerializerMethodField
-from .models import Category, Genre, Titles, User
+from .models.models import Category, Genre, Titles, User
 from django.utils import timezone
 
 
