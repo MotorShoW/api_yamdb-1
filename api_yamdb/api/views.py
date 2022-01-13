@@ -20,14 +20,15 @@ from .permissions import IsAdmin, ReadOnly
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = [IsAdmin, ReadOnly]
+    permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
     @action(
         detail=False, methods=['delete'],
         url_path=r'(?P<slug>\w+)',
-        lookup_field='slug', url_name='category_slug'
+        lookup_field='slug',
+        url_name='category_slug'
     )
     def get_genre(self, request, slug):
         category = self.get_object()
@@ -39,14 +40,15 @@ class GenreViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = [IsAdmin, ReadOnly]
+    permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (filters.SearchFilter,)
-    serach_fields = ('name',)
+    search_fields = ('name',)
 
     @action(
         detail=False, methods=['delete'],
         url_path=r'(?P<slug>\w+)',
-        lookup_field='slug', url_name='category_slug'
+        lookup_field='slug',
+        url_name='category_slug'
     )
     def get_category(self, request, slug):
         category = self.get_object()
@@ -58,7 +60,7 @@ class CategoryViewSet(viewsets.ModelViewSet):
 class TitlesViewSet(viewsets.ModelViewSet):
     queryset = Titles.objects.all()
     serializer_class = TitlesSerializer
-    permission_classes = [IsAdmin, ReadOnly]
+    permission_classes = (IsAdmin | ReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
