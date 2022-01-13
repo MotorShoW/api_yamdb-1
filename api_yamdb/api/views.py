@@ -8,6 +8,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django_filters.rest_framework import DjangoFilterBackend
 
 from api_yamdb.settings import DEFAULT_FROM_EMAIL
 from .models.models import Titles, Genre, Category, User
@@ -15,6 +16,7 @@ from .serializers import (TitleCreateSerializer, TitlesSerializer,
                           GenreSerializer, CategorySerializer,
                           SignUpSerializer, TokenSerializer, UserSerializer)
 from .permissions import IsAdmin, ReadOnly
+from .filters import TitleFilter
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -61,8 +63,8 @@ class TitlesViewSet(viewsets.ModelViewSet):
     queryset = Titles.objects.all()
     serializer_class = TitlesSerializer
     permission_classes = (IsAdmin | ReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
+    filter_backends = [DjangoFilterBackend]
+    filterset_class = TitleFilter
 
     def get_serializer_class(self):
         if self.request.method in ('POST', 'PATCH'):

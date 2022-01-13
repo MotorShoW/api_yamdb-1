@@ -1,6 +1,4 @@
 from rest_framework import serializers
-from rest_framework.fields import SerializerMethodField
-from django.db.models import Avg
 from .models.models import Category, Genre, Titles, User
 from django.utils import timezone
 
@@ -22,11 +20,10 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitlesSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
-    score = SerializerMethodField()
 
     class Meta:
         model = Titles
-        fields = '_all__'
+        fields = ('name', 'year', 'category', 'genre', 'id', 'description')
 
     def get_score(self, obj):
         pass
@@ -42,7 +39,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Titles
-        fields = '__all__'
+        fields = ('name', 'year', 'category', 'genre', 'id', 'description')
 
     def validate_year(self, obj):
         year = timezone.now().year
