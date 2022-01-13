@@ -26,7 +26,7 @@ class TitlesSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Titles
-        fields = '_all__'
+        fields = '__all__'
 
     def get_score(self, obj):
         pass
