@@ -9,11 +9,11 @@ router = DefaultRouter()
 router.register('genres', GenreViewSet, basename='genres')
 router.register('titles', TitlesViewSet, basename='titles')
 router.register('categories', CategoryViewSet, basename='categories')
-router.register(r'users', UserViewSet)
+router.register(r'users', UserViewSet, basename='users')
 
 
 auth_url_patterns = [
-    path('signup/', SignUpVeiwSet.as_view()),
+    path('signup/', SignUpVeiwSet.as_view(), name='signup'),
     path('token/', TokenViewSet.as_view(), name='token_obtain_pair'),
 ]
 

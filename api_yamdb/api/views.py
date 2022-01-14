@@ -19,6 +19,9 @@ from .permissions import IsAdmin, ReadOnly
 from .filters import TitleFilter
 
 
+SIGNUP_ERROR = '{email} field is required'
+
+
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
@@ -89,10 +92,9 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request, *args, **kwargs):
         instance = self.request.user
         serializer = self.get_serializer(instance)
-        if request.method == 'PATCH':
+        if self.request.method == 'PATCH':
             serializer = self.get_serializer(
-                instance, data=request.data, partial=True
-            )
+                instance, data=request.data, partial=True)
             serializer.is_valid(raise_exception=True)
             serializer.save(email=instance.email, role=instance.role)
         return Response(serializer.data)
@@ -103,22 +105,26 @@ class TokenViewSet(APIView):
 
     def post(self, *args, **kwargs):
         serializer = TokenSerializer(data=self.request.data)
-        serializer.is_valid(raise_exception=True)
-        try:
-            user = User.objects.get(
-                email=serializer.data['email'],
-                confirmation_code=serializer.data['confirmation_code']
-            )
-        except exceptions.ValidationError:
-            return Response(
-                data={'detail': 'Invalid email or code'},
-                status=status.HTTP_404_NOT_FOUND
-            )
-        else:
-            user.is_active = True
-            user.save()
-            refresh_token = RefreshToken.for_user(user)
-            return Response({'token': str(refresh_token.access_token)})
+        if serializer.is_valid(raise_exception=True):
+            email = serializer.validated_data.get('email')
+            if not User.objects.filter(email=email).exists():
+                try:
+                    user = User.objects.get(
+                        email=serializer.data['email'],
+                        confirmation_code=serializer.data['confirmation_code']
+                    )
+                except exceptions.ValidationError:
+                    return Response(
+                        data={'detail': 'Invalid email or code'},
+                        status=status.HTTP_404_NOT_FOUND
+                    )
+                else:
+                    user.is_active = True
+                    user.save()
+                    refresh_token = RefreshToken.for_user(user)
+                    return Response({'token': str(refresh_token.access_token)})
+            return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class SignUpVeiwSet(APIView):
@@ -127,22 +133,22 @@ class SignUpVeiwSet(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data.get('email')
-            if email is None:
-                return Response(serializer.errors, status.HTTP_400_BAD_REQUEST)
-            confirmation_code = uuid.uuid4()
-            User.objects.create(
-                email=email, username=str(email),
-                confirmation_code=confirmation_code, is_active=False
-            )
-            send_mail(
-                'Account verification',
-                'Your activation key {}'.format(confirmation_code),
-                DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=True,
-            )
-            return Response(
-                {'result': 'A confirmation code has been sent to your email'},
-                status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
+            if request.data.get('email') is not None and not 'me':
+                email = serializer.validated_data.get('email')
+                if User.objects.filter(email=email).exists():
+                    return Response(status=status.HTTP_400_BAD_REQUEST)
+                confirmation_code = uuid.uuid4()
+                User.objects.create(
+                    email=email, username=str(email),
+                    confirmation_code=confirmation_code, is_active=False
+                )
+                send_mail(
+                    'Account verification',
+                    'Your activation key {}'.format(confirmation_code),
+                    DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=True,
+                )
+                return Response(request.data, status=status.HTTP_200_OK)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
