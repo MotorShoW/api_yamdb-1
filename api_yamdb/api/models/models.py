@@ -9,7 +9,7 @@ WRONG_YEAR = 'Указан некорректный год'
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True, null=True)
+    email = models.EmailField(unique=True)
 
     class RoleList:
         USER = 'user'
