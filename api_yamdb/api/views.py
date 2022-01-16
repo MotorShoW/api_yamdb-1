@@ -1,7 +1,8 @@
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
-from rest_framework import viewsets, filters, status
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import viewsets, exceptions, filters, status
+from rest_framework.permissions import (AllowAny, IsAuthenticated,
+                                        IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -12,9 +13,9 @@ from django.shortcuts import get_object_or_404
 from api_yamdb.settings import EMAIL_YAMDB
 from .models.models import Titles, Genre, Category, User
 from .serializers import (TitleCreateSerializer, TitlesSerializer,
-                          GenreSerializer, CategorySerializer,
+                          GenreSerializer, CategorySerializer, ReviewSerializer,
                           SignUpSerializer, TokenSerializer, UserSerializer)
-from .permissions import IsAdmin, ReadOnly
+from .permissions import IsAdmin, IsAuthorOrRealOnly, ReadOnly
 from .filters import TitleFilter
 
 
@@ -130,3 +131,26 @@ def send_confirmation_code(user):
     site_email = EMAIL_YAMDB
     title = 'Код подтверждения'
     return send_mail(title, confirmation_code, site_email, user_mail)
+
+
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,
+                          IsAuthorOrRealOnly)
+
+    def title(self):
+        title = get_object_or_404(Titles, id=self.kwargs.get('title_id'))
+        return title
+
+    def get_queryset(self):
+        return self.title().reviews.all()
+
+    def perform_create(self, serializer):
+        try:
+            serializer.save(author=self.request.user, title=self.title())
+        except exceptions.ValidationError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+
+    def perform_update(self, serializer):
+        serializer.save()
+        return Response(status=status.HTTP_200_OK)

@@ -1,6 +1,13 @@
+from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from .models.models import Category, Genre, Titles, User
+from .models.models import Category, Genre, Review, Titles, User
 from django.utils import timezone
+
+
+YEAR_VALIDATION_ERROR = 'Ошибка валидации года'
+CREATE_DIFFERENT_NAME = 'Создайте другое имя'
+SCORE_OUT_OF_RANGE = 'Оценка должна быть между 1 и 5'
+ONE_REVIEW_ALLOWED = 'Разрешен только один отзыв на одно произведение'
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -44,9 +51,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
     def validate_year(self, obj):
         year = timezone.now().year
         if not 0 <= obj <= year:
-            raise serializers.ValidationError(
-                'Ошибка валидации года'
-            )
+            raise serializers.ValidationError(YEAR_VALIDATION_ERROR)
         return obj
 
 
@@ -79,7 +84,30 @@ class SignUpSerializer(serializers.ModelSerializer):
 
     def validate_username(self, name):
         if name == 'me':
-            raise serializers.ValidationError(
-                'Создайте другое имя'
-            )
+            raise serializers.ValidationError(CREATE_DIFFERENT_NAME)
         return name
+
+class ReviewSerializer(serializers.ModelSerializer):
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True,
+        many=False,
+    )
+
+    def validate(self, data):
+        request = self.context['request']
+        title_id = self.context['view'].kwargs.get('title_id')
+        title = get_object_or_404(Titles, id=title_id)
+        if (data.get('score') > 5 or data.get('score') < 1):
+            raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
+        if request.method == 'POST':
+            if Review.objects.filter(
+                title=title,
+                author=request.user
+            ).exists():
+                raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
+        return data
+
+    class Meta:
+        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        model = Review
