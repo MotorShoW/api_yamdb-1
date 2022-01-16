@@ -86,10 +86,10 @@ class GenreTitle(models.Model):
 class Titles(models.Model):
     name = models.CharField(max_length=50)
     genre = models.ManyToManyField('Genre', through='GenreTitle',
-                                   related_name='category')
+                                   related_name='titles')
     category = models.ForeignKey('Category', on_delete=models.SET_NULL,
                                  null=True, blank=True,
-                                 related_name='category')
+                                 related_name='titles')
     year = models.IntegerField(
         validators=[MaxValueValidator(timezone.now().year)]
     )
