@@ -1,13 +1,11 @@
-import uuid
-
-from django.core import exceptions
 from django.core.mail import send_mail
-from rest_framework import viewsets, filters, status, exceptions
+from django.contrib.auth.tokens import default_token_generator
+from rest_framework import viewsets, filters, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.tokens import AccessToken
 from django_filters.rest_framework import DjangoFilterBackend
 
 from api_yamdb.settings import DEFAULT_FROM_EMAIL
@@ -17,9 +15,6 @@ from .serializers import (TitleCreateSerializer, TitlesSerializer,
                           SignUpSerializer, TokenSerializer, UserSerializer)
 from .permissions import IsAdmin, ReadOnly
 from .filters import TitleFilter
-
-
-SIGNUP_ERROR = '{email} field is required'
 
 
 class GenreViewSet(viewsets.ModelViewSet):
@@ -100,55 +95,46 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class TokenViewSet(APIView):
-    permission_classes = (AllowAny,)
-
-    def post(self, *args, **kwargs):
-        serializer = TokenSerializer(data=self.request.data)
-        if serializer.is_valid(raise_exception=True):
-            email = serializer.validated_data.get('email')
-            if not User.objects.filter(email=email).exists():
-                try:
-                    user = User.objects.get(
-                        email=serializer.data['email'],
-                        confirmation_code=serializer.data['confirmation_code']
-                    )
-                except exceptions.ValidationError:
-                    return Response(
-                        data={'detail': 'Invalid email or code'},
-                        status=status.HTTP_404_NOT_FOUND
-                    )
-                else:
-                    user.is_active = True
-                    user.save()
-                    refresh_token = RefreshToken.for_user(user)
-                    return Response({'token': str(refresh_token.access_token)})
-            return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
 class SignUpVeiwSet(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         if serializer.is_valid():
+            email = serializer.validated_data.get('email')
             if request.data.get('email') is not None and not 'me':
-                email = serializer.validated_data.get('email')
-                if User.objects.filter(email=email).exists():
-                    return Response(status=status.HTTP_400_BAD_REQUEST)
-                confirmation_code = uuid.uuid4()
-                User.objects.create(
-                    email=email, username=str(email),
-                    confirmation_code=confirmation_code, is_active=False
-                )
-                send_mail(
-                    'Account verification',
-                    'Your activation key {}'.format(confirmation_code),
-                    DEFAULT_FROM_EMAIL,
-                    [email],
-                    fail_silently=True,
-                )
-                return Response(request.data, status=status.HTTP_200_OK)
+                if not User.objects.filter(email=request.data['email']).exists():
+                    user = User.objects.create(
+                        email=email,
+                        is_active=False
+                    )
+                    confirmation_code = default_token_generator.make_token(user)
+                    send_mail(
+                        'Account verification',
+                        'Your activation key {}'.format(confirmation_code),
+                        DEFAULT_FROM_EMAIL,
+                        [email],
+                        fail_silently=True,
+                    )
+                    return Response(serializer.data, status=status.HTTP_200_OK)
+                return Response(status=status.HTTP_400_BAD_REQUEST)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'detail': 'email field required'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TokenViewSet(APIView):
+    permission_classes = (AllowAny,)
+
+    def post(self, request):
+        serializer = TokenSerializer(data=request.data)
+        if serializer.is_valid(raise_exception=True):
+            email = serializer.validated_data.get('email')
+            confirmation_code = serializer.validated_data.get(
+                'confirmation_code'
+            )
+            user = User.objects.get(email=email, username=str(email))
+            if not default_token_generator.check_token(user, confirmation_code):
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            token = AccessToken.for_user(user)
+            return Response({'token': str(token)}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_404_NOT_FOUND)

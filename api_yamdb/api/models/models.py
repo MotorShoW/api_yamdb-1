@@ -1,11 +1,7 @@
-import uuid
 from django.db import models
 from django.utils import timezone
 from django.core.validators import MaxValueValidator
 from django.contrib.auth.models import AbstractUser
-
-
-WRONG_YEAR = 'Указан некорректный год'
 
 
 class User(AbstractUser):
@@ -27,10 +23,6 @@ class User(AbstractUser):
         default=RoleList.USER,
     )
     bio = models.TextField(default='')
-    confirmation_code = models.UUIDField(
-        default=uuid.uuid4,
-        editable=False,
-    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ('username',)
@@ -54,6 +46,9 @@ class User(AbstractUser):
         ordering = ('username',)
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+    def __str__(self):
+        return self.username
 
 
 class Category(models.Model):
