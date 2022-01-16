@@ -64,11 +64,22 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class TokenSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
     confirmation_code = serializers.CharField(required=True)
+    username = serializers.CharField(required=True)
 
-
-class SignUpSerializer(serializers.Serializer):
     class Meta:
         model = User
-        fields = ('email',)
+        fields = ('confirmation_code', 'username',)
+
+
+class SignUpSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ('email', 'username',)
+
+    def validate_username(self, name):
+        if name == 'me':
+            raise serializers.ValidationError(
+                'Создайте другое имя'
+            )
+        return name
