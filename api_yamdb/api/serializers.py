@@ -1,6 +1,8 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import serializers
-from .models.models import Category, Genre, Review, Titles, User
+from rest_framework.validators import UniqueTogetherValidator
+
+from reviews.models import Category, Genre, Review, Title, User
 from django.utils import timezone
 
 
@@ -27,10 +29,12 @@ class GenreSerializer(serializers.ModelSerializer):
 class TitlesSerializer(serializers.ModelSerializer):
     genre = GenreSerializer(many=True)
     category = CategorySerializer()
+    rating = serializers.IntegerField(read_only=True)
 
     class Meta:
-        model = Titles
-        fields = ('name', 'year', 'category', 'genre', 'id', 'description')
+        model = Title
+        fields = ('name', 'year', 'category',
+                  'genre', 'id', 'description', 'rating')
 
     def get_score(self, obj):
         pass
@@ -45,7 +49,7 @@ class TitleCreateSerializer(serializers.ModelSerializer):
     )
 
     class Meta:
-        model = Titles
+        model = Title
         fields = ('name', 'year', 'category', 'genre', 'id', 'description')
 
     def validate_year(self, obj):
@@ -95,19 +99,10 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
 
     def validate(self, data):
-        request = self.context['request']
-        title_id = self.context['view'].kwargs.get('title_id')
-        title = get_object_or_404(Titles, id=title_id)
-        if (data.get('score') > 5 or data.get('score') < 1):
+        if (data.get('score') > 10 or data.get('score') < 1):
             raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
-        if request.method == 'POST':
-            if Review.objects.filter(
-                title=title,
-                author=request.user
-            ).exists():
-                raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
         return data
 
     class Meta:
-        fields = ('id', 'text', 'author', 'score', 'pub_date')
+        fields = ('text', 'author', 'pub_date', 'score', 'id')
         model = Review

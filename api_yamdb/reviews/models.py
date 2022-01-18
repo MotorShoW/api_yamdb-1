@@ -75,19 +75,11 @@ class Genre(models.Model):
         return f'{self.name} {self.name}'
 
 
-class GenreTitle(models.Model):
-    genre = models.ForeignKey('Genre', on_delete=models.CASCADE)
-    title = models.ForeignKey('Titles', on_delete=models.CASCADE)
-
-    def __str__(self):
-        return f'{self.genre} {self.title}'
-
-
-class Titles(models.Model):
+class Title(models.Model):
     name = models.CharField(max_length=50)
-    genre = models.ManyToManyField('Genre', through='GenreTitle',
+    genre = models.ManyToManyField(Genre, through='GenreTitle',
                                    related_name='titles')
-    category = models.ForeignKey('Category', on_delete=models.SET_NULL,
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL,
                                  null=True, blank=True,
                                  related_name='titles')
     year = models.IntegerField(
@@ -105,21 +97,30 @@ class Titles(models.Model):
         return self.name
 
 
+class GenreTitle(models.Model):
+    genre = models.ForeignKey(Genre, on_delete=models.CASCADE)
+    title = models.ForeignKey(Title, on_delete=models.CASCADE)
+
+    def __str__(self):
+        return f'{self.genre} {self.title}'
+
+
 class Review(models.Model):
-    title = models.ForeignKey('Titles', on_delete=models.CASCADE,
+    title = models.ForeignKey(Title, on_delete=models.CASCADE,
                               related_name='reviews')
     text = models.TextField()
-    author = models.ForeignKey('User', on_delete=models.CASCADE,
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
                                related_name='reviews')
-    pub_date = models.DateTimeField('Review Date', auto_now_add=True)
-    score = models.IntegerField('Review Score',
+    pub_date = models.DateTimeField('Дата Публикации', auto_now_add=True)
+    score = models.IntegerField('Рейтинг',
                                 validators=[MinValueValidator(1),
-                                            MaxValueValidator(5)])
+                                            MaxValueValidator(10)])
 
     class Meta:
         ordering = ('-pub_date',)
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
+        unique_together = ('author', 'title')
 
     def __str__(self):
         return self.text

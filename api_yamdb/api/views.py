@@ -1,5 +1,6 @@
 from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
+from django.db.models.aggregates import Avg
 from rest_framework import viewsets, exceptions, filters, status
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
@@ -11,18 +12,22 @@ from django_filters.rest_framework import DjangoFilterBackend
 from django.shortcuts import get_object_or_404
 
 from api_yamdb.settings import EMAIL_YAMDB
-from .models.models import Titles, Genre, Category, User
+from reviews.models import Title, Genre, Category, User
 from .serializers import (TitleCreateSerializer, TitlesSerializer,
                           GenreSerializer, CategorySerializer, ReviewSerializer,
                           SignUpSerializer, TokenSerializer, UserSerializer)
-from .permissions import IsAdmin, IsAuthorOrRealOnly, ReadOnly
+from .permissions import (IsAdminOrAuthorOrReadOnly,
+                          IsAdminOrReadOnly, IsAdmin)
 from .filters import TitleFilter
+
+
+SEND_CODE_MESSAGE = 'Код подтверждения'
 
 
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
-    permission_classes = (IsAdmin | ReadOnly,)
+    permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
@@ -42,7 +47,7 @@ class GenreViewSet(viewsets.ModelViewSet):
 class CategoryViewSet(viewsets.ModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    permission_classes = (IsAdmin | ReadOnly,)
+    permission_classes = (IsAdminOrReadOnly,)
     filter_backends = (filters.SearchFilter,)
     search_fields = ('name',)
 
@@ -59,10 +64,10 @@ class CategoryViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_204_NO_CONTENT)
 
 
-class TitlesViewSet(viewsets.ModelViewSet):
-    queryset = Titles.objects.all()
+class TitleViewSet(viewsets.ModelViewSet):
+    queryset = Title.objects.all().annotate(rating=Avg('reviews__score'))
     serializer_class = TitlesSerializer
-    permission_classes = (IsAdmin | ReadOnly,)
+    permission_classes = (IsAdminOrReadOnly,)
     filter_backends = [DjangoFilterBackend]
     filterset_class = TitleFilter
 
@@ -125,32 +130,32 @@ class TokenViewSet(APIView):
         return Response({'token': str(token.access_token)}, status=status.HTTP_200_OK)
 
 
+class ReviewViewSet(viewsets.ModelViewSet):
+    serializer_class = ReviewSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,
+                          IsAdminOrAuthorOrReadOnly)
+
+    def get_title(self):
+        title = get_object_or_404(Title, id=self.kwargs.get('title_id'))
+        return title
+
+    def get_queryset(self):
+        return self.get_title().reviews.all()
+
+    def perform_create(self, serializer):
+        try:
+            serializer.save(author=self.request.user, title=self.get_title())
+        except exceptions.ValidationError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_201_CREATED)
+
+    def perform_update(self, serializer):
+        serializer.save()
+
+
 def send_confirmation_code(user):
     confirmation_code = default_token_generator.make_token(user)
     user_mail = [user.email]
     site_email = EMAIL_YAMDB
-    title = 'Код подтверждения'
-    return send_mail(title, confirmation_code, site_email, user_mail)
-
-
-class ReviewViewSet(viewsets.ModelViewSet):
-    serializer_class = ReviewSerializer
-    permission_classes = (IsAuthenticatedOrReadOnly,
-                          IsAuthorOrRealOnly)
-
-    def title(self):
-        title = get_object_or_404(Titles, id=self.kwargs.get('title_id'))
-        return title
-
-    def get_queryset(self):
-        return self.title().reviews.all()
-
-    def perform_create(self, serializer):
-        try:
-            serializer.save(author=self.request.user, title=self.title())
-        except exceptions.ValidationError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-
-    def perform_update(self, serializer):
-        serializer.save()
-        return Response(status=status.HTTP_200_OK)
+    message = SEND_CODE_MESSAGE
+    return send_mail(message, confirmation_code, site_email, user_mail)
