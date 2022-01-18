@@ -91,30 +91,32 @@ class SignUpSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(CREATE_DIFFERENT_NAME)
         return name
 
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
         read_only=True,
         many=False,
+        default=serializers.CurrentUserDefault()
     )
     title = serializers.PrimaryKeyRelatedField(read_only=True)
 
 
-    def validate(self, data):
-        if (data.get('score') > 10 or data.get('score') < 1):
-            raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
-        author = self.context['request'].user
-        title = get_object_or_404(
-            Title,
-            id=self.context['request'].parser_context['kwargs'].get('title_id')
-        )
-        if (self.context['request'].method == 'POST'
-                and title.reviews.filter(author=author).exists()):
-            raise serializers.ValidationError(
-                f'Отзыв на произведение {title.name} уже существует'
-            )
-        return data
-
     class Meta:
         fields = '__all__'
         model = Review
+
+    def validate(self, data):
+        if self.context['request'].method == 'POST':
+            author = self.context['request'].user
+            title_id = self.context['view'].kwargs.get('title_id')
+            if Review.objects.filter(
+                    title=title_id, author=author).exists():
+                raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
+            return data
+        return data
+
+    def validate_score(self, value):
+        if not 1 <= value <= 10:
+            raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
+        return value
