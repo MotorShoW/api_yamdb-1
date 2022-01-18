@@ -1,10 +1,7 @@
-from django.shortcuts import get_object_or_404
-from rest_framework import serializers
-from rest_framework.validators import UniqueTogetherValidator
-
-from reviews.models import Category, Genre, Review, Title, User
 from django.utils import timezone
+from rest_framework import serializers
 
+from reviews.models import Category, Comment, Genre, Review, Title, User
 
 YEAR_VALIDATION_ERROR = 'Ошибка валидации года'
 CREATE_DIFFERENT_NAME = 'Создайте другое имя'
@@ -101,7 +98,6 @@ class ReviewSerializer(serializers.ModelSerializer):
     )
     title = serializers.PrimaryKeyRelatedField(read_only=True)
 
-
     class Meta:
         fields = '__all__'
         model = Review
@@ -120,3 +116,17 @@ class ReviewSerializer(serializers.ModelSerializer):
         if not 1 <= value <= 10:
             raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
         return value
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    review = serializers.PrimaryKeyRelatedField(
+        read_only=True
+    )
+    author = serializers.SlugRelatedField(
+        slug_field='username',
+        read_only=True
+    )
+
+    class Meta:
+        fields = '__all__'
+        model = Comment

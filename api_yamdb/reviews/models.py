@@ -1,7 +1,7 @@
+from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils import timezone
-from django.core.validators import MaxValueValidator, MinValueValidator
-from django.contrib.auth.models import AbstractUser
 
 
 class User(AbstractUser):
@@ -108,10 +108,11 @@ class GenreTitle(models.Model):
 class Review(models.Model):
     title = models.ForeignKey(Title, on_delete=models.CASCADE,
                               related_name='reviews')
-    text = models.TextField()
+    text = models.TextField('Текст Отзыва', blank=False)
     author = models.ForeignKey(User, on_delete=models.CASCADE,
                                related_name='reviews')
-    pub_date = models.DateTimeField('Дата Публикации', auto_now_add=True)
+    pub_date = models.DateTimeField('Дата Публикации Отзыва',
+                                    auto_now_add=True)
     score = models.IntegerField('Рейтинг',
                                 validators=[MinValueValidator(1),
                                             MaxValueValidator(10)])
@@ -129,3 +130,16 @@ class Review(models.Model):
 
     def __str__(self):
         return self.text
+
+
+class Comment(models.Model):
+    author = models.ForeignKey(User, on_delete=models.CASCADE,
+                               related_name='comments')
+    review = models.ForeignKey(Review, on_delete=models.CASCADE,
+                               related_name='comments')
+    text = models.TextField('Текст Комментария', blank=False)
+    pub_date = models.DateTimeField('Дата Публикации Комментария',
+                                    auto_now_add=True)
+
+    class Meta:
+        ordering = ('-pub_date',)

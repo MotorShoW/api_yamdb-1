@@ -1,25 +1,24 @@
-from django.core.mail import send_mail
 from django.contrib.auth.tokens import default_token_generator
+from django.core.mail import send_mail
 from django.db.models.aggregates import Avg
-from rest_framework import viewsets, exceptions, filters, status
+from django.shortcuts import get_object_or_404
+from django_filters.rest_framework import DjangoFilterBackend
+from rest_framework import exceptions, filters, status, viewsets
+from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
-from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
-from django_filters.rest_framework import DjangoFilterBackend
-from django.shortcuts import get_object_or_404
 
 from api_yamdb.settings import EMAIL_YAMDB
-from reviews.models import Title, Genre, Category, User
-from .serializers import (TitleCreateSerializer, TitlesSerializer,
-                          GenreSerializer, CategorySerializer, ReviewSerializer,
-                          SignUpSerializer, TokenSerializer, UserSerializer)
-from .permissions import (IsAdminOrAuthorOrReadOnly,
-                          IsAdminOrReadOnly, IsAdmin)
+from reviews.models import Category, Genre, Review, Title, User
 from .filters import TitleFilter
-
+from .permissions import IsAdmin, IsAdminOrAuthorOrReadOnly, IsAdminOrReadOnly
+from .serializers import (CategorySerializer, CommentSerializer,
+                          GenreSerializer, ReviewSerializer, SignUpSerializer,
+                          TitleCreateSerializer, TitlesSerializer,
+                          TokenSerializer, UserSerializer)
 
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
@@ -111,7 +110,8 @@ class SignUpVeiwSet(APIView):
             user = serializer.save()
             send_confirmation_code(user)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
 
 class TokenViewSet(APIView):
@@ -120,14 +120,16 @@ class TokenViewSet(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(serializer.errors,
+                            status=status.HTTP_400_BAD_REQUEST)
         username = serializer.data['username']
         confirmation_code = serializer.data['confirmation_code']
         user = get_object_or_404(User, username=username)
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         token = RefreshToken.for_user(user)
-        return Response({'token': str(token.access_token)}, status=status.HTTP_200_OK)
+        return Response({'token': str(token.access_token)},
+                        status=status.HTTP_200_OK)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
@@ -159,3 +161,23 @@ def send_confirmation_code(user):
     site_email = EMAIL_YAMDB
     message = SEND_CODE_MESSAGE
     return send_mail(message, confirmation_code, site_email, user_mail)
+
+
+class CommentViewSet(viewsets.ModelViewSet):
+    serializer_class = CommentSerializer
+    permission_classes = (IsAuthenticatedOrReadOnly,
+                          IsAdminOrAuthorOrReadOnly)
+
+    def get_review(self):
+        review = get_object_or_404(Review, id=self.kwargs.get('review_id'))
+        return review
+
+    def get_queryset(self):
+        return self.get_review().comments.all()
+
+    def perform_create(self, serializer):
+        try:
+            serializer.save(author=self.request.user, review=self.get_review())
+        except exceptions.ValidationError:
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        return Response(status=status.HTTP_201_CREATED)
