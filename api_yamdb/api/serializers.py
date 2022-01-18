@@ -8,7 +8,7 @@ from django.utils import timezone
 
 YEAR_VALIDATION_ERROR = 'Ошибка валидации года'
 CREATE_DIFFERENT_NAME = 'Создайте другое имя'
-SCORE_OUT_OF_RANGE = 'Оценка должна быть между 1 и 5'
+SCORE_OUT_OF_RANGE = 'Оценка должна быть между 1 и 10'
 ONE_REVIEW_ALLOWED = 'Разрешен только один отзыв на одно произведение'
 
 
@@ -97,12 +97,24 @@ class ReviewSerializer(serializers.ModelSerializer):
         read_only=True,
         many=False,
     )
+    title = serializers.PrimaryKeyRelatedField(read_only=True)
+
 
     def validate(self, data):
         if (data.get('score') > 10 or data.get('score') < 1):
             raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
+        author = self.context['request'].user
+        title = get_object_or_404(
+            Title,
+            id=self.context['request'].parser_context['kwargs'].get('title_id')
+        )
+        if (self.context['request'].method == 'POST'
+                and title.reviews.filter(author=author).exists()):
+            raise serializers.ValidationError(
+                f'Отзыв на произведение {title.name} уже существует'
+            )
         return data
 
     class Meta:
-        fields = ('text', 'author', 'pub_date', 'score', 'id')
+        fields = '__all__'
         model = Review
