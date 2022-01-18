@@ -117,10 +117,14 @@ class Review(models.Model):
                                             MaxValueValidator(10)])
 
     class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['author', 'title'],
+                name='unique together')
+        ]
         ordering = ('-pub_date',)
         verbose_name = 'Отзыв'
         verbose_name_plural = 'Отзывы'
-        unique_together = ('author', 'title')
 
     def __str__(self):
         return self.text
