@@ -5,9 +5,12 @@ from django.utils import timezone
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
+    email = models.EmailField(max_length=254, blank=False, unique=True)
+    username = models.CharField(max_length=150, blank=False, unique=True)
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
 
-    class RoleList:
+    class Roles:
         USER = 'user'
         ADMIN = 'admin'
         MODERATOR = 'moderator'
@@ -19,21 +22,20 @@ class User(AbstractUser):
 
     role = models.CharField(
         max_length=128,
-        choices=RoleList.choices,
-        default=RoleList.USER,
+        choices=Roles.choices,
+        default=Roles.USER,
     )
     bio = models.TextField(default='')
 
-    USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ('username',)
+    REQUIRED_FIELDS = ('username', 'email')
 
     @property
     def is_admin(self):
-        return (self.role == self.RoleList.ADMIN or self.is_superuser)
+        return (self.role == self.Roles.ADMIN or self.is_superuser)
 
     @property
     def is_moderator(self):
-        return (self.is_admin or self.role == self.RoleList.MODERATOR)
+        return (self.is_admin or self.role == self.Roles.MODERATOR)
 
     def get_payload(self):
         return {
@@ -44,11 +46,11 @@ class User(AbstractUser):
 
     class Meta:
         ordering = ('username',)
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
+        verbose_name = 'Пользователь'
+        verbose_name_plural = 'Пользователи'
 
     def __str__(self):
-        return self.username
+        return (self.username, self.email)
 
 
 class Category(models.Model):
@@ -60,7 +62,7 @@ class Category(models.Model):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return f'{self.name} {self.name}'
+        return f'{self.name}'
 
 
 class Genre(models.Model):
@@ -72,11 +74,11 @@ class Genre(models.Model):
         verbose_name_plural = 'Жанры'
 
     def __str__(self):
-        return f'{self.name} {self.name}'
+        return f'{self.name}'
 
 
 class Title(models.Model):
-    name = models.CharField(max_length=50)
+    name = models.TextField(blank=False)
     genre = models.ManyToManyField(Genre, through='GenreTitle',
                                    related_name='titles')
     category = models.ForeignKey(Category, on_delete=models.SET_NULL,
@@ -85,8 +87,8 @@ class Title(models.Model):
     year = models.IntegerField(
         validators=[MaxValueValidator(timezone.now().year)]
     )
-    description = models.CharField(
-        max_length=100, blank=True, null=True
+    description = models.TextField(
+        blank=True, null=True
     )
 
     class Meta:
@@ -129,7 +131,7 @@ class Review(models.Model):
         ]
 
     def __str__(self):
-        return self.text
+        return self.text[:15]
 
 
 class Comment(models.Model):

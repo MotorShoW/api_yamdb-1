@@ -20,6 +20,7 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           TitleCreateSerializer, TitlesSerializer,
                           TokenSerializer, UserSerializer)
 
+
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
 
@@ -93,11 +94,12 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request, *args, **kwargs):
         instance = self.request.user
         serializer = self.get_serializer(instance)
-        if self.request.method == 'PATCH':
-            serializer = self.get_serializer(
-                instance, data=request.data, partial=True)
-            serializer.is_valid(raise_exception=True)
-            serializer.save(email=instance.email, role=instance.role)
+        if self.request.method == 'GET':
+            return Response(serializer.data)
+        serializer = self.get_serializer(
+            instance, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save(role=instance.role, partial=True)
         return Response(serializer.data)
 
 
@@ -142,17 +144,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return title
 
     def get_queryset(self):
-        return self.get_title().reviews.all()
+        return get_object_or_404(
+            Title, id=self.kwargs.get('title_id')
+        ).reviews.all()
 
     def perform_create(self, serializer):
-        try:
-            serializer.save(author=self.request.user, title=self.get_title())
-        except exceptions.ValidationError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_201_CREATED)
-
-    def perform_update(self, serializer):
-        serializer.save()
+        serializer.save(
+            author=self.request.user,
+            title=get_object_or_404(
+                Title, id=self.kwargs.get('title_id')
+            )
+        )
 
 
 def send_confirmation_code(user):
@@ -176,8 +178,4 @@ class CommentViewSet(viewsets.ModelViewSet):
         return self.get_review().comments.all()
 
     def perform_create(self, serializer):
-        try:
-            serializer.save(author=self.request.user, review=self.get_review())
-        except exceptions.ValidationError:
-            return Response(status=status.HTTP_400_BAD_REQUEST)
-        return Response(status=status.HTTP_201_CREATED)
+        serializer.save(author=self.request.user, review=self.get_review())

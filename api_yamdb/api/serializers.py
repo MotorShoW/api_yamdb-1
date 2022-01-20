@@ -57,6 +57,11 @@ class TitleCreateSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(required=True)
+    email = serializers.EmailField(required=True)
+    first_name = serializers.CharField()
+    last_name = serializers.CharField()
+
     class Meta:
         fields = (
             'username',
@@ -96,10 +101,10 @@ class ReviewSerializer(serializers.ModelSerializer):
         many=False,
         default=serializers.CurrentUserDefault()
     )
-    title = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         fields = '__all__'
+        read_only_fields = ('title',)
         model = Review
 
     def validate(self, data):
@@ -107,7 +112,8 @@ class ReviewSerializer(serializers.ModelSerializer):
             author = self.context['request'].user
             title_id = self.context['view'].kwargs.get('title_id')
             if Review.objects.filter(
-                    title=title_id, author=author).exists():
+                title=title_id, author=author
+            ).exists():
                 raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
             return data
         return data
@@ -119,9 +125,6 @@ class ReviewSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
-    review = serializers.PrimaryKeyRelatedField(
-        read_only=True
-    )
     author = serializers.SlugRelatedField(
         slug_field='username',
         read_only=True
@@ -129,4 +132,5 @@ class CommentSerializer(serializers.ModelSerializer):
 
     class Meta:
         fields = '__all__'
+        read_only_fields = ('review',)
         model = Comment
