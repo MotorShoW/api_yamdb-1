@@ -27,7 +27,7 @@ class User(AbstractUser):
     )
     bio = models.TextField(default='')
 
-    REQUIRED_FIELDS = ('username', 'email')
+    REQUIRED_FIELDS = ('email',)
 
     @property
     def is_admin(self):
