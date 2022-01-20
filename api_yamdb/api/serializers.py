@@ -78,10 +78,6 @@ class TokenSerializer(serializers.Serializer):
     confirmation_code = serializers.CharField(required=True)
     username = serializers.CharField(required=True)
 
-    class Meta:
-        model = User
-        fields = ('confirmation_code', 'username',)
-
 
 class SignUpSerializer(serializers.ModelSerializer):
     class Meta:

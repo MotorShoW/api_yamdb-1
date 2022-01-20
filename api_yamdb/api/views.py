@@ -24,6 +24,15 @@ from .serializers import (CategorySerializer, CommentSerializer,
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
 
+def send_confirmation_code(user):
+    confirmation_code = default_token_generator.make_token(user)
+    user_mail = [user.email]
+    site_email = EMAIL_YAMDB
+    message = SEND_CODE_MESSAGE
+    return send_mail(message, confirmation_code,
+                     site_email, user_mail, fail_silently=False)
+
+
 class GenreViewSet(viewsets.ModelViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
@@ -72,7 +81,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
-        if self.request.method in ('POST', 'PATCH'):
+        if not self.request.method in ('GET'):
             return TitleCreateSerializer
         return TitlesSerializer
 
@@ -108,12 +117,10 @@ class SignUpVeiwSet(APIView):
 
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors,
-                        status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        send_confirmation_code(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class TokenViewSet(APIView):
@@ -121,9 +128,7 @@ class TokenViewSet(APIView):
 
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors,
-                            status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
         username = serializer.data['username']
         confirmation_code = serializer.data['confirmation_code']
         user = get_object_or_404(User, username=username)
@@ -155,14 +160,6 @@ class ReviewViewSet(viewsets.ModelViewSet):
                 Title, id=self.kwargs.get('title_id')
             )
         )
-
-
-def send_confirmation_code(user):
-    confirmation_code = default_token_generator.make_token(user)
-    user_mail = [user.email]
-    site_email = EMAIL_YAMDB
-    message = SEND_CODE_MESSAGE
-    return send_mail(message, confirmation_code, site_email, user_mail)
 
 
 class CommentViewSet(viewsets.ModelViewSet):
