@@ -15,8 +15,8 @@ class IsAdmin(permissions.BasePermission):
 class IsAdminOrAuthorOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.user.is_authenticated:
-            if (request.method == 'POST' and request.user.is_authenticated
-                or request.user.is_staff or request.user.is_moderator
+            if (request.method != 'GET' and request.user.is_staff
+                or request.user.is_moderator
                 or obj.author == request.user):
                 return True
         elif request.method in permissions.SAFE_METHODS:
