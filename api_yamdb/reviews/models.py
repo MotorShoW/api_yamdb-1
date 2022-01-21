@@ -21,7 +21,7 @@ class User(AbstractUser):
         ]
 
     role = models.CharField(
-        max_length=128,
+        max_length=255,
         choices=Roles.choices,
         default=Roles.USER,
     )
@@ -32,7 +32,8 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return (self.role == self.Roles.ADMIN or self.is_superuser)
+        return (self.role == self.Roles.ADMIN or self.is_superuser
+                or self.is_staff)
 
     @property
     def is_moderator(self):
@@ -55,8 +56,8 @@ class User(AbstractUser):
 
 
 class Category(models.Model):
-    slug = models.SlugField(unique=True)
-    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=256)
 
     class Meta:
         verbose_name = 'Категория'
@@ -67,8 +68,8 @@ class Category(models.Model):
 
 
 class Genre(models.Model):
-    slug = models.SlugField(unique=True)
-    name = models.CharField(max_length=50)
+    slug = models.SlugField(unique=True, max_length=50)
+    name = models.CharField(max_length=256)
 
     class Meta:
         verbose_name = 'Жанр'
@@ -86,7 +87,9 @@ class Title(models.Model):
                                  null=True, blank=True,
                                  related_name='titles')
     year = models.IntegerField(
-        validators=[MaxValueValidator(timezone.now().year)]
+        validators=[
+            MinValueValidator(1),
+            MaxValueValidator(timezone.now().year)]
     )
     description = models.TextField(
         blank=True, null=True

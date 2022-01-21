@@ -1,9 +1,7 @@
-from django.utils import timezone
 from rest_framework import serializers
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
-YEAR_VALIDATION_ERROR = 'Ошибка валидации года'
 CREATE_DIFFERENT_NAME = 'Создайте другое имя'
 SCORE_OUT_OF_RANGE = 'Оценка должна быть между 1 и 10'
 ONE_REVIEW_ALLOWED = 'Разрешен только один отзыв на одно произведение'
@@ -24,14 +22,16 @@ class GenreSerializer(serializers.ModelSerializer):
 
 
 class TitlesSerializer(serializers.ModelSerializer):
-    genre = GenreSerializer(many=True)
-    category = CategorySerializer()
+    genre = GenreSerializer(read_only=True, many=True)
+    category = CategorySerializer(read_only=True)
     rating = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Title
         fields = ('name', 'year', 'category',
                   'genre', 'id', 'description', 'rating')
+        read_only_fields = ('name', 'year', 'category', 'genre',
+                            'id', 'description', 'rating')
 
     def get_score(self, obj):
         pass
@@ -48,12 +48,6 @@ class TitleCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Title
         fields = ('name', 'year', 'category', 'genre', 'id', 'description')
-
-    def validate_year(self, obj):
-        year = timezone.now().year
-        if not 0 <= obj <= year:
-            raise serializers.ValidationError(YEAR_VALIDATION_ERROR)
-        return obj
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -113,11 +107,6 @@ class ReviewSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
             return data
         return data
-
-    def validate_score(self, value):
-        if not 1 <= value <= 10:
-            raise serializers.ValidationError(SCORE_OUT_OF_RANGE)
-        return value
 
 
 class CommentSerializer(serializers.ModelSerializer):
