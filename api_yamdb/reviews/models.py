@@ -6,6 +6,7 @@ from django.utils import timezone
 
 class User(AbstractUser):
     email = models.EmailField(max_length=254, blank=False, unique=True)
+    username = models.CharField(max_length=150, blank=False, unique=True)
 
     class Roles:
         USER = 'user'
