@@ -14,14 +14,14 @@ class User(AbstractUser):
         USER = 'user'
         ADMIN = 'admin'
         MODERATOR = 'moderator'
-        choices = {
-            USER: 'user',
-            ADMIN: 'admin',
-            MODERATOR: 'moderator',
-        }
+        choices = (
+            (USER, 'user'),
+            (ADMIN, 'admin'),
+            (MODERATOR, 'moderator'),
+        )
 
     role = models.CharField(
-        max_length=len(max(Roles.choices.keys(), key = len)),
+        max_length=len(max(Roles.choices, key=lambda t: len(t[0]))[0]),
         choices=Roles.choices,
         default=Roles.USER,
     )
