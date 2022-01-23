@@ -10,6 +10,8 @@
 
 # Наполнение базы данных тестовыми данными
 
+- Выполните команду `python manage.py import_data`
+
 # Tech
 **Python**, **Django**, **Rest Framework**, **Simple-JWT**
 
