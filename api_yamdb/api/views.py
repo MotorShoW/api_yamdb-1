@@ -9,7 +9,7 @@ from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import AccessToken
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from api_yamdb.settings import EMAIL_YAMDB
 from reviews.models import Category, Genre, Review, Title, User
@@ -103,17 +103,19 @@ class SignUpVeiwSet(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        email = serializer.validated_data.get('email')
-        username = serializer.validated_data.get('username')
-        user, active = User.objects.get_or_create(
-            email=email,
-            username=username
-        )
-        if active:
-            user.is_active = False
-            user.save()
+        user = serializer.save()
         send_confirmation_code(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
+
+    def code(self, request):
+        serializer = UserSerializer(data=request.data)
+        if serializer.is_valid():
+            email = serializer.data['email']
+            username = serializer.data['username']
+            user = get_object_or_404(User, username=username, email=email)
+            send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TokenViewSet(APIView):
@@ -125,13 +127,13 @@ class TokenViewSet(APIView):
         username = serializer.data['username']
         confirmation_code = serializer.data['confirmation_code']
         user = get_object_or_404(User, username=username)
-        if default_token_generator.check_token(user, confirmation_code):
-            user.is_active = True
-            user.save()
-            token = AccessToken.for_user(user)
-            return Response({'token': str(token.access_token)},
-                            status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        if not default_token_generator.check_token(user, confirmation_code):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
+        token = RefreshToken.for_user(user)
+        user.is_active = True
+        user.save()
+        return Response({'token': str(token.access_token)},
+                        status=status.HTTP_200_OK)
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
