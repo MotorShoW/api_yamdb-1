@@ -103,9 +103,13 @@ class SignUpVeiwSet(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user = serializer.save()
-        send_confirmation_code(user)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+        if request.user.is_active == False:
+            user = serializer.save()
+            user.is_active = False
+            send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors,
+                        status=status.HTTP_400_BAD_REQUEST)
 
     def code(self, request):
         serializer = UserSerializer(data=request.data)

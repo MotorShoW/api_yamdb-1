@@ -69,6 +69,18 @@ class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
 
 
+class SignUpSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = User
+        fields = ('email', 'username',)
+
+    def validate_username(self, name):
+        if name == 'me':
+            raise serializers.ValidationError(CREATE_DIFFERENT_NAME)
+        return name
+
+
 class ReviewSerializer(serializers.ModelSerializer):
     author = serializers.SlugRelatedField(
         slug_field='username',
