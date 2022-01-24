@@ -105,8 +105,6 @@ class SignUpVeiwSet(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         send_confirmation_code(user)
-        if not user and user.is_active:
-            user.delete()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -122,6 +120,8 @@ class TokenViewSet(APIView):
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         token = RefreshToken.for_user(user)
+        user.is_active = True
+        user.save()
         return Response({'token': str(token.access_token)},
                         status=status.HTTP_200_OK)
 
