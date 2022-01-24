@@ -66,7 +66,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
-        if not self.request.method in ('GET'):
+        if self.request.method not in ('GET'):
             return TitleCreateSerializer
         return TitlesSerializer
 
@@ -103,7 +103,7 @@ class SignUpVeiwSet(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if request.user.is_active == False:
+        if request.user.is_active is False:
             user = serializer.save()
             user.is_active = False
             send_confirmation_code(user)
