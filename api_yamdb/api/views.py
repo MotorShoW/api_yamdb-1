@@ -107,16 +107,6 @@ class SignUpVeiwSet(APIView):
         send_confirmation_code(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    def code(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.data['email']
-            username = serializer.data['username']
-            user = get_object_or_404(User, username=username, email=email)
-            send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class TokenViewSet(APIView):
     permission_classes = (AllowAny,)
@@ -130,8 +120,6 @@ class TokenViewSet(APIView):
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(status=status.HTTP_400_BAD_REQUEST)
         token = RefreshToken.for_user(user)
-        user.is_active = True
-        user.save()
         return Response({'token': str(token.access_token)},
                         status=status.HTTP_200_OK)
 
