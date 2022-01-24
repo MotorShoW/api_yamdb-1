@@ -105,6 +105,8 @@ class SignUpVeiwSet(APIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         send_confirmation_code(user)
+        if not user and user.is_active:
+            user.delete()
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 

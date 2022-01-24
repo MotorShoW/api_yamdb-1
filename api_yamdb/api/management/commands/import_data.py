@@ -5,7 +5,7 @@ from reviews.models import User, Title, Genre, Category, Comment, Review
 
 
 class Command(BaseCommand):
-    help = 'Накачка ДБ из данных csv файлов'
+    help = 'Накачка БД из данных csv файлов'
 
     def handle(self, *args, **options):
         for row in DictReader(open('./static/data/users.csv',
