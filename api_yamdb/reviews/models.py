@@ -14,15 +14,15 @@ class User(AbstractUser):
         USER = 'user'
         ADMIN = 'admin'
         MODERATOR = 'moderator'
-        choices = (
+        CHOICES = (
             (USER, 'user'),
             (ADMIN, 'admin'),
             (MODERATOR, 'moderator'),
         )
 
     role = models.CharField(
-        max_length=len(max(Roles.choices, key=lambda t: len(t[0]))[0]),
-        choices=Roles.choices,
+        max_length=len(max(Roles.CHOICES, key=lambda t: len(t[0]))[0]),
+        choices=Roles.CHOICES,
         default=Roles.USER,
     )
     bio = models.TextField(default='')
@@ -32,8 +32,7 @@ class User(AbstractUser):
 
     @property
     def is_admin(self):
-        return (self.role == self.Roles.ADMIN or self.is_superuser
-                or self.is_staff)
+        return (self.role == self.Roles.ADMIN or self.is_staff)
 
     @property
     def is_moderator(self):
@@ -64,7 +63,7 @@ class Category(models.Model):
         verbose_name_plural = 'Категории'
 
     def __str__(self):
-        return f'{self.name}'
+        return self.name
 
 
 class Genre(models.Model):
@@ -76,7 +75,7 @@ class Genre(models.Model):
         verbose_name_plural = 'Жанры'
 
     def __str__(self):
-        return f'{self.name}'
+        return self.name
 
 
 class Title(models.Model):

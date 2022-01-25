@@ -111,16 +111,6 @@ class SignUpVeiwSet(APIView):
         return Response(serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
 
-    def code(self, request):
-        serializer = UserSerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.data['email']
-            username = serializer.data['username']
-            user = get_object_or_404(User, username=username, email=email)
-            send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
 
 class TokenViewSet(APIView):
     permission_classes = (AllowAny,)
@@ -150,16 +140,12 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return title
 
     def get_queryset(self):
-        return get_object_or_404(
-            Title, id=self.kwargs.get('title_id')
-        ).reviews.all()
+        return self.get_title().reviews.all()
 
     def perform_create(self, serializer):
         serializer.save(
             author=self.request.user,
-            title=get_object_or_404(
-                Title, id=self.kwargs.get('title_id')
-            )
+            title=self.get_title()
         )
 
 
