@@ -88,7 +88,8 @@ class Title(models.Model):
     year = models.IntegerField(
         validators=[
             MinValueValidator(1),
-            MaxValueValidator(timezone.now().year)]
+            MaxValueValidator(timezone.now().year)
+        ]
     )
     description = models.TextField(
         blank=True, null=True
