@@ -99,7 +99,7 @@ class SignUpVeiw(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if request.user.is_active is False:
+        if not request.user.is_authenticated:
             user = serializer.save()
             user.is_active = False
             send_confirmation_code(user)

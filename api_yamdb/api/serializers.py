@@ -69,11 +69,12 @@ class TokenSerializer(serializers.Serializer):
     username = serializers.CharField(required=True)
 
 
-class SignUpSerializer(serializers.ModelSerializer):
+class SignUpSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=True)
 
-    class Meta:
-        model = User
-        fields = ('email', 'username',)
+    def create(self, validated_data):
+        return User.objects.create(**validated_data)
 
     def validate_username(self, name):
         if name == 'me':
