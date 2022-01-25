@@ -97,7 +97,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return Response(serializer.data)
 
 
-class SignUpVeiwSet(APIView):
+class SignUpVeiw(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
@@ -112,7 +112,7 @@ class SignUpVeiwSet(APIView):
                         status=status.HTTP_400_BAD_REQUEST)
 
 
-class TokenViewSet(APIView):
+class TokenView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
