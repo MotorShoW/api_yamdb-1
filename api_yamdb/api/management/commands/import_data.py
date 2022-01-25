@@ -22,8 +22,8 @@ class Command(BaseCommand):
         for row in DictReader(open('./static/data/titles.csv',
                                    encoding='utf-8')):
             title = Title(id=row['id'],
-                          year=row['year'],
                           name=row['name'],
+                          year=row['year'],
                           category=Category.objects.get(id=row['category']))
             title.save()
 
