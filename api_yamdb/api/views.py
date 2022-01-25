@@ -24,10 +24,12 @@ from .serializers import (CategorySerializer, CommentSerializer,
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
 
-class CustomViewSet(mixins.CreateModelMixin,
-                    mixins.ListModelMixin,
-                    mixins.DestroyModelMixin,
-                    viewsets.GenericViewSet):
+class CreateListDestroyViewSet(
+    mixins.CreateModelMixin,
+    mixins.ListModelMixin,
+    mixins.DestroyModelMixin,
+    viewsets.GenericViewSet
+):
     pass
 
 
@@ -40,7 +42,7 @@ def send_confirmation_code(user):
                      site_email, user_mail, fail_silently=False)
 
 
-class GenreViewSet(CustomViewSet):
+class GenreViewSet(CreateListDestroyViewSet):
     queryset = Genre.objects.all()
     serializer_class = GenreSerializer
     permission_classes = (IsAdminOrReadOnly,)
@@ -49,7 +51,7 @@ class GenreViewSet(CustomViewSet):
     lookup_field = 'slug'
 
 
-class CategoryViewSet(CustomViewSet):
+class CategoryViewSet(CreateListDestroyViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     permission_classes = (IsAdminOrReadOnly,)
