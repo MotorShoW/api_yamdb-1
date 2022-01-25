@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.db.models.aggregates import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets, mixins
+from rest_framework import filters, status, viewsets, mixins, permissions
 from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
@@ -24,13 +24,25 @@ from .serializers import (CategorySerializer, CommentSerializer,
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
 
-class CreateListDestroyViewSet(
-    mixins.CreateModelMixin,
-    mixins.ListModelMixin,
-    mixins.DestroyModelMixin,
-    viewsets.GenericViewSet
-):
+class CreateListDestroyViewSet(mixins.CreateModelMixin,
+                               mixins.ListModelMixin,
+                               mixins.DestroyModelMixin,
+                               viewsets.GenericViewSet):
+    permission_classes = (IsAdminOrReadOnly,)
+    filter_backends = (filters.SearchFilter,)
+    search_fields = ('name',)
+    lookup_field = 'slug'
     pass
+
+
+class GenreViewSet(CreateListDestroyViewSet):
+    queryset = Genre.objects.all()
+    serializer_class = GenreSerializer
+
+
+class CategoryViewSet(CreateListDestroyViewSet):
+    queryset = Category.objects.all()
+    serializer_class = CategorySerializer
 
 
 def send_confirmation_code(user):
@@ -42,24 +54,6 @@ def send_confirmation_code(user):
                      site_email, user_mail, fail_silently=False)
 
 
-class GenreViewSet(CreateListDestroyViewSet):
-    queryset = Genre.objects.all()
-    serializer_class = GenreSerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-
-
-class CategoryViewSet(CreateListDestroyViewSet):
-    queryset = Category.objects.all()
-    serializer_class = CategorySerializer
-    permission_classes = (IsAdminOrReadOnly,)
-    filter_backends = (filters.SearchFilter,)
-    search_fields = ('name',)
-    lookup_field = 'slug'
-
-
 class TitleViewSet(viewsets.ModelViewSet):
     queryset = Title.objects.all().annotate(rating=Avg('reviews__score'))
     serializer_class = TitlesSerializer
@@ -68,7 +62,7 @@ class TitleViewSet(viewsets.ModelViewSet):
     filterset_class = TitleFilter
 
     def get_serializer_class(self):
-        if self.request.method not in ('GET'):
+        if self.request.method not in permissions.SAFE_METHODS:
             return TitleCreateSerializer
         return TitlesSerializer
 
@@ -90,7 +84,7 @@ class UserViewSet(viewsets.ModelViewSet):
     def me(self, request, *args, **kwargs):
         instance = self.request.user
         serializer = self.get_serializer(instance)
-        if self.request.method == 'GET':
+        if self.request.method in permissions.SAFE_METHODS:
             return Response(serializer.data)
         serializer = self.get_serializer(
             instance, data=request.data, partial=True)
@@ -120,8 +114,8 @@ class TokenView(APIView):
     def post(self, request):
         serializer = TokenSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        username = serializer.data['username']
-        confirmation_code = serializer.data['confirmation_code']
+        username = request.data['username']
+        confirmation_code = request.data['confirmation_code']
         user = get_object_or_404(User, username=username)
         if not default_token_generator.check_token(user, confirmation_code):
             return Response(status=status.HTTP_400_BAD_REQUEST)
