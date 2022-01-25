@@ -1,4 +1,4 @@
-from rest_framework import serializers
+from rest_framework import serializers, validators
 from django.core.validators import MaxValueValidator, MinValueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
@@ -71,8 +71,18 @@ class TokenSerializer(serializers.Serializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField(required=True)
-    username = serializers.CharField(required=True)
+    email = serializers.EmailField(
+        required=True,
+        validators=[
+            validators.UniqueValidator(queryset=User.objects.all())
+        ]
+    )
+    username = serializers.CharField(
+        required=True,
+        validators=[
+            validators.UniqueValidator(queryset=User.objects.all())
+        ]
+    )
 
     def create(self, validated_data):
         return User.objects.create(**validated_data)

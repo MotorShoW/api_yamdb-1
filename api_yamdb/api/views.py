@@ -100,9 +100,18 @@ class SignUpVeiw(APIView):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         if not request.user.is_authenticated:
-            user = serializer.save()
-            user.is_active = False
-            send_confirmation_code(user)
+            if not User.objects.filter(
+                email=request.data['email'],
+                username=request.data['username']
+            ).exists():
+                user = User.objects.create(
+                    email=request.data['email'],
+                    username=request.data['username'],
+                )
+                user.is_active = False
+                send_confirmation_code(user)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+            send_confirmation_code(request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors,
                         status=status.HTTP_400_BAD_REQUEST)
