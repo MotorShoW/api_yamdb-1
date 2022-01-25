@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from django.core.validators import MaxValueValidator, MinValueValidator
 
 from reviews.models import Category, Comment, Genre, Review, Title, User
 
@@ -88,6 +89,8 @@ class ReviewSerializer(serializers.ModelSerializer):
         many=False,
         default=serializers.CurrentUserDefault()
     )
+    score = serializers.IntegerField(validators=[MinValueValidator(1),
+                                                 MaxValueValidator(10)])
 
     class Meta:
         fields = '__all__'
