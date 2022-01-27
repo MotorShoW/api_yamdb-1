@@ -99,18 +99,18 @@ class SignUpVeiw(APIView):
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        if not request.user.is_authenticated:
-            if not User.objects.filter(
+        if not User.objects.filter(
+            email=request.data['email'],
+            username=request.data['username'],
+        ).exists():
+            user = User.objects.create(
                 email=request.data['email'],
-                username=request.data['username']
-            ).exists():
-                user = User.objects.create(
-                    email=request.data['email'],
-                    username=request.data['username'],
-                )
-                user.is_active = False
-                send_confirmation_code(user)
-                return Response(serializer.data, status=status.HTTP_200_OK)
+                username=request.data['username'],
+            )
+            user.is_active = False
+            send_confirmation_code(user)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        if not request.user.is_active:
             send_confirmation_code(request.user)
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors,
