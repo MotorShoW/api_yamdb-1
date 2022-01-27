@@ -3,7 +3,7 @@ from django.core.mail import send_mail
 from django.db.models.aggregates import Avg
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters, status, viewsets, mixins, permissions
+from rest_framework import filters, mixins, permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import (AllowAny, IsAuthenticated,
                                         IsAuthenticatedOrReadOnly)
@@ -19,7 +19,6 @@ from .serializers import (CategorySerializer, CommentSerializer,
                           GenreSerializer, ReviewSerializer, SignUpSerializer,
                           TitleCreateSerializer, TitlesSerializer,
                           TokenSerializer, UserSerializer)
-
 
 SEND_CODE_MESSAGE = 'Код подтверждения'
 
@@ -111,8 +110,8 @@ class SignUpVeiw(APIView):
             )
         if not user.is_active:
             send_confirmation_code(user)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        return Response(serializer.errors,
+            return Response(request.data, status=status.HTTP_200_OK)
+        return Response(request.data,
                         status=status.HTTP_400_BAD_REQUEST)
 
 
