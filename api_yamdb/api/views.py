@@ -98,7 +98,7 @@ class SignUpVeiw(APIView):
 
     def post(self, request):
         serializer = SignUpSerializer(data=request.data)
-        if (request.data.get('email') and request.data.get('username')
+        if (request.data.get('email', 'username')
             in User.objects.all() and not request.user.is_active):
             send_confirmation_code(request.user)
             return Response(request.data, status=status.HTTP_200_OK)
