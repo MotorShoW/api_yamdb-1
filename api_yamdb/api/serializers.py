@@ -71,21 +71,8 @@ class TokenSerializer(serializers.Serializer):
 
 
 class SignUpSerializer(serializers.Serializer):
-    email = serializers.EmailField(
-        required=True,
-        validators=[
-            validators.UniqueValidator(queryset=User.objects.all())
-        ]
-    )
-    username = serializers.CharField(
-        required=True,
-        validators=[
-            validators.UniqueValidator(queryset=User.objects.all())
-        ]
-    )
-
-    def create(self, validated_data):
-        return User.objects.create(**validated_data)
+    email = serializers.EmailField(required=True)
+    username = serializers.CharField(required=True)
 
     def validate_username(self, name):
         if name == 'me':
@@ -109,14 +96,14 @@ class ReviewSerializer(serializers.ModelSerializer):
         model = Review
 
     def validate(self, data):
-        if self.context['request'].method == 'POST':
-            author = self.context['request'].user
-            title_id = self.context['view'].kwargs.get('title_id')
-            if Review.objects.filter(
-                title=title_id, author=author
-            ).exists():
-                raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
+        if self.context['request'].method != 'POST':
             return data
+        author = self.context['request'].user
+        title_id = self.context['view'].kwargs.get('title_id')
+        if Review.objects.filter(
+            title=title_id, author=author
+        ).exists():
+            raise serializers.ValidationError(ONE_REVIEW_ALLOWED)
         return data
 
 
